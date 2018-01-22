@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using iTextSharp.text;
@@ -800,7 +800,17 @@ namespace Moon.PDFDrawItextSharp
 			iTextSharp.text.BaseColor color = new iTextSharp.text.BaseColor(Moon.PDFDraw.Helper.GetAttributeColor(ColorAttributeConstant, lineAttrs, "Black"));
 			float lineThickness = Moon.PDFDraw.Helper.GetFloatAttributeValue(LineThicknessAttributeConstant,lineAttrs,  1f);
 
-			DrawVerticalLine(x_start, x_end, lineThickness, color);
+            float absY1 = Moon.PDFDraw.Helper.GetFloatAttributeValue("y1", lineAttrs, -1);
+            float absY2 = Moon.PDFDraw.Helper.GetFloatAttributeValue("y2", lineAttrs, -1);
+
+            if (absY1 != -1 && absY2 != -1)
+            {
+                DrawLine(x_start, x_end, absY1, absY2, lineThickness, color);
+            }
+            else
+            {
+                DrawVerticalLine(x_start, x_end, lineThickness, color);
+            }
 		}
 		/// <summary>
 		/// Draw a vertical line on the current y with default line width of 1
@@ -841,15 +851,34 @@ namespace Moon.PDFDrawItextSharp
 			iPDFContent.Stroke();
 			iPDFContent.RestoreState();
 		}
-		
-		
-		
-		/// <summary>
-		/// Draw on CurrentY
-		/// </summary>
-		/// <param name="x"></param>
-		/// <param name="imageAttrs"></param>
-		public void DrawImage(float x, XmlAttributeCollection imageAttrs)
+
+        /// <summary>
+        /// Draws a line with absolute positions 
+        /// </summary>
+        /// <param name="x_start"></param>
+        /// <param name="x_end"></param>
+        /// <param name="y_start"></param>
+        /// <param name="y_end"></param>
+        /// <param name="lineWidth"></param>
+        /// <param name="color"></param>
+        public void DrawLine(float x_start, float x_end, float y_start, float y_end, float lineWidth, iTextSharp.text.BaseColor color)
+        {
+            iPDFContent.SaveState();
+            iPDFContent.SetLineWidth(lineWidth);
+            iPDFContent.SetColorStroke(color);
+            iPDFContent.MoveTo(x_start, y_start);
+            iPDFContent.LineTo(x_end, y_end);
+            iPDFContent.Stroke();
+            iPDFContent.RestoreState();
+        }
+
+
+        /// <summary>
+        /// Draw on CurrentY
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="imageAttrs"></param>
+        public void DrawImage(float x, XmlAttributeCollection imageAttrs)
 		{
 			iTextSharp.text.Image img = CreateImageFromAttribute(imageAttrs);
 			_PreITextDrawImage(img, x, Current_y, imageAttrs);
@@ -879,17 +908,29 @@ namespace Moon.PDFDrawItextSharp
 			iTextSharp.text.Image img = CreateImageFromAttribute(imageAttrs);
 			DrawImage(img, x, y);
 		}
-		
-		
-		/// <summary>
-		/// Draws image. Main method. Sets absolute position. 
-		/// 
-		/// </summary>
-		/// <param name="img"></param>
-		/// <param name="x"></param>
-		/// <param name="y"></param>
-		/// <param name="imageAttrs">optional</param>
-		private  void _PreITextDrawImage(iTextSharp.text.Image img, float x, float y, XmlAttributeCollection imageAttrs){
+
+        /// <summary>
+        /// Draw at absolute position x, y
+        /// <para/>Doesn't support alignment.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="src"></param>
+        /// <param name="imageAttrs"></param>
+        public void DrawImage(float x, float y, string src, XmlAttributeCollection imageAttrs)
+        {
+            iTextSharp.text.Image img = CreateImageFromAttribute(src, imageAttrs);
+            DrawImage(img, x, y);
+        }
+        /// <summary>
+        /// Draws image. Main method. Sets absolute position. 
+        /// 
+        /// </summary>
+        /// <param name="img"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="imageAttrs">optional</param>
+        private  void _PreITextDrawImage(iTextSharp.text.Image img, float x, float y, XmlAttributeCollection imageAttrs){
 			
 			if(img != null && imageAttrs != null){
 				string attrAlign = Helper.GetAttributeValue( AlignAttributeConstant, imageAttrs, "none" );				
@@ -1355,15 +1396,6 @@ namespace Moon.PDFDrawItextSharp
 
 			return cell;
 		}
-
-        /// <summary>
-        /// Change the orientation.
-        /// </summary>
-	    public void RotatePage()
-        {
-            pageSize = pageSize.Rotate();
-            PdfDoc.SetPageSize(pageSize); //PdfDoc.PageSize.Rotate());
-        }
 		
 		
 		private iTextSharp.text.Image _backgroundImageCache = null;
